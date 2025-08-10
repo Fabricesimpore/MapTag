@@ -136,7 +136,13 @@ jobs:
       working-directory: frontend/maptag_bf
       run: |
         echo "Flutter project structure validated"
-        echo "Skipping APK build - project needs Android configuration"
+        # Check if we can create Android files for testing
+        if [ ! -f "android/app/build.gradle" ]; then
+          echo "Android configuration missing - would need setup for APK build"
+        else
+          echo "Android configuration present"
+        fi
+        echo "Skipping APK build in test job"
 
     - name: ✅ Flutter validation complete
       run: echo "Flutter analysis, tests, and build checks passed!"
@@ -226,9 +232,22 @@ jobs:
       run: |
         flutter pub get
         # Check if Android configuration exists
-        if [ ! -d "android" ] || [ ! -f "android/app/build.gradle" ]; then
-          echo "⚠️ Android configuration missing. Creating Flutter project structure..."
-          flutter create --template=app --platforms=android .
+        if [ ! -f "android/app/build.gradle" ]; then
+          echo "⚠️ Android configuration missing. Creating Android platform files..."
+          # Remove empty android directory if it exists
+          rm -rf android ios web
+          # Backup important files
+          cp pubspec.yaml pubspec.yaml.bak
+          cp -r lib lib.bak
+          cp -r assets assets.bak 2>/dev/null || echo "No assets directory found"
+          # Create Android platform files
+          flutter create --platforms=android --project-name maptag_bf .
+          # Restore important files
+          cp pubspec.yaml.bak pubspec.yaml
+          rm -rf lib && mv lib.bak lib
+          rm -rf assets && mv assets.bak assets 2>/dev/null || echo "No assets to restore"
+          # Clean up backup files
+          rm -f pubspec.yaml.bak
           flutter pub get
         fi
         flutter build apk --release
