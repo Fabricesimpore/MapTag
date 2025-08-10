@@ -480,7 +480,7 @@ class _AddressListScreenState extends State<AddressListScreen> {
                           address.code ?? 'Code en attente',
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.mono,
+                            fontFamily: 'monospace',
                             color: Colors.grey.shade600,
                           ),
                         ),

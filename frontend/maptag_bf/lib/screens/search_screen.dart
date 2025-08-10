@@ -390,7 +390,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 address.code ?? 'Code en attente',
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.mono,
+                  fontFamily: 'monospace',
                   color: Colors.grey.shade600,
                 ),
               ),
@@ -558,7 +558,8 @@ class _AddressDetailsSheet extends StatelessWidget {
                       address.code ?? 'Code en attente',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.mono,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
                         color: Colors.blue.shade700,
                       ),
                     ),

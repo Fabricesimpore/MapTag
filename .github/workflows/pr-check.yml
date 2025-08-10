@@ -42,7 +42,7 @@ jobs:
     - name: 📋 Validate Docker files
       run: |
         docker run --rm -i hadolint/hadolint < backend/Dockerfile
-        docker-compose config > /dev/null
+        docker compose config > /dev/null || docker-compose config > /dev/null
 
     - name: 📱 Flutter analysis
       uses: subosito/flutter-action@v2

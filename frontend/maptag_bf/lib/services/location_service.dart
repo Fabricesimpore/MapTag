@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class LocationService {
   static const LocationSettings _locationSettings = LocationSettings(
@@ -55,7 +55,7 @@ class LocationService {
         'Permission refusée',
         'L\'accès à la géolocalisation est nécessaire.',
       );
-    } on TimeoutException {
+    } on TimeoutException catch (_) {
       throw LocationException(
         'Délai d\'attente dépassé',
         'Impossible d\'obtenir votre position. Réessayez.',

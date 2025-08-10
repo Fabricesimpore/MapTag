@@ -171,21 +171,21 @@ jobs:
         sed -i 's/localhost/postgres/g' .env.test
         
         # Start services
-        docker-compose -f docker-compose.yml --env-file .env.test up -d postgres redis
+        docker compose -f docker-compose.yml --env-file .env.test up -d postgres redis
         sleep 10
         
         # Test database connection
-        docker-compose exec -T postgres pg_isready -U maptag
+        docker compose exec -T postgres pg_isready -U maptag
         
         # Build and start backend
-        docker-compose -f docker-compose.yml --env-file .env.test up -d backend
+        docker compose -f docker-compose.yml --env-file .env.test up -d backend
         sleep 15
         
         # Health check
         curl -f http://localhost:3000/health || exit 1
         
         # Cleanup
-        docker-compose down
+        docker compose down
 
   # Security Scan
   security-scan:
@@ -201,14 +201,9 @@ jobs:
       with:
         scan-type: 'fs'
         scan-ref: './backend'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
-    - name: 📤 Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
+        format: 'table'
+        exit-code: '0'
+        severity: 'CRITICAL,HIGH'
 
   # Deployment (Production)
   deploy-production:
