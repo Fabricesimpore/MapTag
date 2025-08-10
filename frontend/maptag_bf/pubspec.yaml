@@ -1,0 +1,68 @@
+name: maptag_bf
+description: MapTag BF - Digital addressing system for Burkina Faso
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # GPS and location services
+  geolocator: ^9.0.2
+  permission_handler: ^10.4.3
+  
+  # Camera and image handling
+  camera: ^0.10.5+2
+  image_picker: ^1.0.2
+  
+  # QR code generation and scanning
+  qr_flutter: ^4.1.0
+  barcode_scan2: ^4.2.3
+  
+  # HTTP requests
+  http: ^1.1.0
+  
+  # Local database
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  
+  # Connectivity and offline handling
+  connectivity_plus: ^4.0.2
+  
+  # Utilities
+  uuid: ^3.0.7
+  shared_preferences: ^2.2.0
+  
+  # UI components
+  cupertino_icons: ^1.0.2
+  
+  # Internationalization
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/fonts/
+  
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+
+flutter_intl:
+  enabled: true

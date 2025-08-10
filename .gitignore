@@ -1,0 +1,94 @@
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Dependencies
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Production builds
+dist/
+build/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads and temp files
+uploads/
+temp/
+tmp/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Backup files
+backups/
+*.backup
+*.dump
+
+# Flutter
+frontend/maptag_bf/.dart_tool/
+frontend/maptag_bf/.flutter-plugins
+frontend/maptag_bf/.flutter-plugins-dependencies
+frontend/maptag_bf/.packages
+frontend/maptag_bf/.pub-cache/
+frontend/maptag_bf/.pub/
+frontend/maptag_bf/build/
+frontend/maptag_bf/ios/Flutter/flutter_export_environment.sh
+frontend/maptag_bf/ios/Flutter/Generated.xcconfig
+frontend/maptag_bf/ios/Runner/GeneratedPluginRegistrant.*
+frontend/maptag_bf/android/.gradle
+frontend/maptag_bf/android/captures/
+frontend/maptag_bf/android/gradlew
+frontend/maptag_bf/android/gradlew.bat
+frontend/maptag_bf/android/local.properties
+frontend/maptag_bf/android/app/src/main/java/io/flutter/plugins/
+
+# SSL certificates
+*.crt
+*.key
+*.pem
+
+# Terraform (if used)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Kubernetes secrets
+secrets.yaml

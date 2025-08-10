@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with PostGIS extension
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: maptag-postgres
+    environment:
+      POSTGRES_DB: maptag_bf
+      POSTGRES_USER: maptag
+      POSTGRES_PASSWORD: password123
+      PGUSER: maptag
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maptag -d maptag_bf"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - maptag-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: maptag-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - maptag-network
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: maptag-backend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://maptag:password123@postgres:5432/maptag_bf
+      REDIS_URL: redis://redis:6379
+      PORT: 3000
+      JWT_SECRET: maptag-bf-jwt-secret-change-in-production
+    volumes:
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - maptag-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: maptag-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - maptag-network
+
+  # Backup service (runs daily)
+  backup:
+    image: postgres:15
+    container_name: maptag-backup
+    environment:
+      PGPASSWORD: password123
+    volumes:
+      - ./backups:/backups
+      - backup_scripts:/scripts
+    depends_on:
+      - postgres
+    command: >
+      sh -c "
+        echo '0 2 * * * pg_dump -h postgres -U maptag -d maptag_bf > /backups/maptag_backup_$$(date +%Y%m%d_%H%M%S).sql' | crontab -
+        && crond -f
+      "
+    restart: unless-stopped
+    networks:
+      - maptag-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  nginx_logs:
+    driver: local
+  backup_scripts:
+    driver: local
+
+networks:
+  maptag-network:
+    driver: bridge
