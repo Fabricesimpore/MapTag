@@ -269,33 +269,30 @@ jobs:
         path: frontend/maptag_bf/build/app/outputs/flutter-apk/app-release.apk
 
     - name: 🐳 Login to Docker Hub
-      if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
       uses: docker/login-action@v3
       continue-on-error: true
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        username: ${{ secrets.DOCKERHUB_USERNAME || 'skip' }}
+        password: ${{ secrets.DOCKERHUB_TOKEN || 'skip' }}
 
     - name: 🏗️ Build and push Docker image
-      if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
       continue-on-error: true
       uses: docker/build-push-action@v5
       with:
         context: ./backend
-        push: ${{ secrets.DOCKERHUB_USERNAME != '' }}
+        push: false
         tags: |
-          ${{ secrets.DOCKERHUB_USERNAME || 'maptag' }}/maptag-bf:latest
-          ${{ secrets.DOCKERHUB_USERNAME || 'maptag' }}/maptag-bf:${{ github.sha }}
+          maptag/maptag-bf:latest
+          maptag/maptag-bf:${{ github.sha }}
 
     # Optional: Deploy to server via SSH
     - name: 🚀 Deploy to production server
-      if: ${{ secrets.DEPLOY_HOST != '' }}
       continue-on-error: true
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USER }}
-        key: ${{ secrets.DEPLOY_KEY }}
+        host: ${{ secrets.DEPLOY_HOST || 'localhost' }}
+        username: ${{ secrets.DEPLOY_USER || 'deploy' }}
+        key: ${{ secrets.DEPLOY_KEY || 'none' }}
         script: |
           cd /home/maptag/maptag-bf
           git pull origin main
