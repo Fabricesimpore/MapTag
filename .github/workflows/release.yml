@@ -41,6 +41,16 @@ jobs:
         sed -i "s/version: .*/version: ${{ steps.version.outputs.version }}/" pubspec.yaml
         
         flutter pub get
+        
+        # Check if Android configuration exists
+        if [ ! -d "android" ] || [ ! -f "android/app/build.gradle" ]; then
+          echo "⚠️ Android configuration missing. Creating Flutter project structure..."
+          flutter create --template=app --platforms=android .
+          # Restore updated pubspec.yaml
+          sed -i "s/version: .*/version: ${{ steps.version.outputs.version }}/" pubspec.yaml
+          flutter pub get
+        fi
+        
         flutter build apk --release
         
         # Rename APK with version
