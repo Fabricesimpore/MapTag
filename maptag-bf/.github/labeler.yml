@@ -1,0 +1,59 @@
+# GitHub PR Auto-labeler Configuration
+
+# Backend changes
+"backend":
+  - "backend/**/*"
+  - "scripts/**/*"
+  - "docker-compose.yml"
+  - "Dockerfile"
+
+# Frontend changes  
+"frontend":
+  - "frontend/**/*"
+
+# Documentation changes
+"documentation":
+  - "*.md"
+  - "docs/**/*"
+
+# Configuration changes
+"config":
+  - "*.yml"
+  - "*.yaml" 
+  - "*.json"
+  - ".env*"
+  - ".github/**/*"
+
+# Database changes
+"database":
+  - "**/*database*"
+  - "**/*.sql"
+  - "**/schema*"
+
+# Dependencies
+"dependencies":
+  - "package*.json"
+  - "pubspec.yaml"
+  - "requirements*.txt"
+
+# Security
+"security":
+  - "**/*auth*"
+  - "**/*security*"
+  - "**/*ssl*"
+  - "**/*cert*"
+
+# Enhancement
+"enhancement":
+  - "frontend/**/*"
+  - "backend/routes/**/*"
+
+# Bug fix (automatically applied based on PR title/description)
+"bug":
+  - any: ['bug', 'fix', 'issue', 'error']
+
+# CI/CD
+"ci/cd":
+  - ".github/workflows/**/*"
+  - "scripts/deploy*"
+  - "scripts/build*"

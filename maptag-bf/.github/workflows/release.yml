@@ -1,0 +1,275 @@
+name: 🎉 Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  FLUTTER_VERSION: '3.16.0'
+  NODE_VERSION: '18'
+
+jobs:
+  # Build release artifacts
+  build-release:
+    name: 🏗️ Build Release Artifacts
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🏷️ Get version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: 📱 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+
+    - name: 🏗️ Build Android APK
+      working-directory: frontend/maptag_bf
+      run: |
+        # Update version in pubspec.yaml
+        sed -i "s/version: .*/version: ${{ steps.version.outputs.version }}/" pubspec.yaml
+        
+        flutter pub get
+        flutter build apk --release
+        
+        # Rename APK with version
+        cp build/app/outputs/flutter-apk/app-release.apk \
+           build/app/outputs/flutter-apk/maptag-bf-v${{ steps.version.outputs.version }}.apk
+
+    - name: 🐳 Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: 🐳 Login to Docker Hub
+      if: env.DOCKERHUB_USERNAME != ''
+      uses: docker/login-action@v3
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: 🏗️ Build and push Docker images
+      if: env.DOCKERHUB_USERNAME != ''
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: |
+          ${{ secrets.DOCKERHUB_USERNAME }}/maptag-bf:latest
+          ${{ secrets.DOCKERHUB_USERNAME }}/maptag-bf:v${{ steps.version.outputs.version }}
+        platforms: linux/amd64,linux/arm64
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: 📦 Create deployment package
+      run: |
+        mkdir -p release-package
+        
+        # Copy deployment files
+        cp -r scripts release-package/
+        cp docker-compose.yml release-package/
+        cp backend/.env.example release-package/
+        cp nginx/ release-package/ -r
+        cp *.md release-package/
+        
+        # Create installation script
+        cat > release-package/install.sh << 'EOF'
+        #!/bin/bash
+        echo "🚀 MapTag BF Installation"
+        echo "========================"
+        
+        # Check prerequisites
+        if ! command -v docker &> /dev/null; then
+            echo "❌ Docker not found. Please install Docker first."
+            exit 1
+        fi
+        
+        if ! command -v docker-compose &> /dev/null; then
+            echo "❌ Docker Compose not found. Please install Docker Compose first."
+            exit 1
+        fi
+        
+        echo "✅ Prerequisites check passed"
+        echo ""
+        
+        # Set up environment
+        if [[ ! -f ".env" ]]; then
+            cp .env.example .env
+            echo "📝 Created .env file. Please edit it with your settings:"
+            echo "   nano .env"
+            echo ""
+            echo "Then run: ./scripts/deploy.sh production"
+        else
+            echo "📝 .env file already exists"
+            echo "Running deployment..."
+            ./scripts/deploy.sh production
+        fi
+        EOF
+        
+        chmod +x release-package/install.sh
+        
+        # Create archive
+        tar -czf maptag-bf-v${{ steps.version.outputs.version }}.tar.gz release-package/
+
+    - name: 📤 Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifacts
+        path: |
+          frontend/maptag_bf/build/app/outputs/flutter-apk/maptag-bf-v${{ steps.version.outputs.version }}.apk
+          maptag-bf-v${{ steps.version.outputs.version }}.tar.gz
+
+  # Create GitHub release
+  create-release:
+    name: 📦 Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-release
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📥 Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: release-artifacts
+        path: ./artifacts
+
+    - name: 📋 Generate release notes
+      id: release_notes
+      run: |
+        # Generate release notes from commits since last tag
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [[ -n "$PREV_TAG" ]]; then
+          COMMITS=$(git log --pretty=format:"- %s" $PREV_TAG..HEAD)
+        else
+          COMMITS=$(git log --pretty=format:"- %s" --max-count=10)
+        fi
+        
+        # Count changes by type
+        BACKEND_CHANGES=$(echo "$COMMITS" | grep -i -E "(backend|api|server|database)" | wc -l)
+        FRONTEND_CHANGES=$(echo "$COMMITS" | grep -i -E "(frontend|mobile|app|ui)" | wc -l)
+        DOCS_CHANGES=$(echo "$COMMITS" | grep -i -E "(doc|readme|guide)" | wc -l)
+        
+        cat > release_notes.md << EOF
+        ## 🎉 MapTag BF v${{ needs.build-release.outputs.version }}
+        
+        ### 📱 What's New
+        - Backend changes: $BACKEND_CHANGES
+        - Frontend changes: $FRONTEND_CHANGES  
+        - Documentation updates: $DOCS_CHANGES
+        
+        ### 🚀 Quick Start
+        1. Download \`maptag-bf-v${{ needs.build-release.outputs.version }}.tar.gz\`
+        2. Extract: \`tar -xzf maptag-bf-v${{ needs.build-release.outputs.version }}.tar.gz\`
+        3. Run: \`cd release-package && ./install.sh\`
+        
+        ### 📱 Mobile App
+        - Download \`maptag-bf-v${{ needs.build-release.outputs.version }}.apk\`
+        - Install on Android device
+        - Enable "Install from unknown sources" if needed
+        
+        ### 🔧 For Developers
+        - Docker image: \`docker pull maptag/maptag-bf:v${{ needs.build-release.outputs.version }}\`
+        - Full source code available in repository
+        
+        ### 📋 Recent Changes
+        $COMMITS
+        
+        ### 🌍 Built for Burkina Faso
+        Digital addressing system with:
+        - GPS-based address creation
+        - Offline-first mobile app  
+        - French language interface
+        - BF-CITY-GRID-XXXX address format
+        
+        ---
+        **Need help?** Check the [Production Guide](PRODUCTION_GUIDE.md) or [Action Plan](ACTION_PLAN.md)
+        EOF
+
+    - name: 📦 Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: MapTag BF v${{ needs.build-release.outputs.version }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+        files: |
+          artifacts/maptag-bf-v${{ needs.build-release.outputs.version }}.apk
+          artifacts/maptag-bf-v${{ needs.build-release.outputs.version }}.tar.gz
+
+  # Deploy to production (if configured)
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-release, create-release]
+    environment: production
+    if: env.DEPLOY_HOST != ''
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🚀 Deploy to production server
+      env:
+        DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        script: |
+          cd /home/maptag/maptag-bf
+          
+          # Backup current deployment
+          ./scripts/backup.sh
+          
+          # Pull latest release
+          git fetch --tags
+          git checkout v${{ needs.build-release.outputs.version }}
+          
+          # Deploy new version
+          ./scripts/deploy.sh production
+          
+          # Verify deployment
+          sleep 30
+          ./scripts/verify-deployment.sh https://${{ secrets.DEPLOY_DOMAIN }}
+          
+          echo "🎉 Deployment of v${{ needs.build-release.outputs.version }} completed!"
+
+  # Notify about release
+  notify-release:
+    name: 📢 Notify Release
+    runs-on: ubuntu-latest
+    needs: [create-release]
+    if: always()
+    
+    steps:
+    - name: 🎉 Success notification
+      if: needs.create-release.result == 'success'
+      run: |
+        echo "🎉 MapTag BF v${{ needs.build-release.outputs.version }} released successfully!"
+        echo "📱 Android APK available for download"
+        echo "🐳 Docker image published"
+        echo "📦 Release package created"
+        echo "🌍 Ready for deployment in Burkina Faso!"
+        
+    - name: ❌ Failure notification  
+      if: failure()
+      run: |
+        echo "❌ Release v${{ needs.build-release.outputs.version }} failed!"
+        echo "Please check the workflow logs and try again."

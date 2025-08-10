@@ -1,0 +1,182 @@
+name: 🔍 Pull Request Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Quick validation for PRs
+  quick-check:
+    name: ⚡ Quick Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: 🔧 Install dependencies
+      working-directory: backend
+      run: npm ci
+
+    - name: 🧹 Check code formatting
+      working-directory: backend
+      run: |
+        # Check if package.json has lint script
+        if npm run | grep -q "lint"; then
+          npm run lint
+        else
+          echo "No lint script found, skipping"
+        fi
+
+    - name: 🔍 Basic syntax check
+      working-directory: backend
+      run: node -c server.js
+
+    - name: 📋 Validate Docker files
+      run: |
+        docker run --rm -i hadolint/hadolint < backend/Dockerfile
+        docker-compose config > /dev/null
+
+    - name: 📱 Flutter analysis
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+    
+    - name: 📱 Flutter quick check
+      working-directory: frontend/maptag_bf
+      run: |
+        flutter pub get
+        flutter analyze --no-pub
+
+  # Security check for PRs
+  security-check:
+    name: 🔒 Security Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔍 Secret detection
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+
+    - name: 📦 Check dependencies
+      working-directory: backend
+      run: |
+        npm audit --audit-level moderate
+
+  # Documentation check
+  docs-check:
+    name: 📚 Documentation Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📋 Check required files
+      run: |
+        files=(
+          "README.md"
+          "DEPLOYMENT.md" 
+          "PRODUCTION_GUIDE.md"
+          "ACTION_PLAN.md"
+          "backend/package.json"
+          "frontend/maptag_bf/pubspec.yaml"
+          "docker-compose.yml"
+        )
+        
+        missing_files=()
+        for file in "${files[@]}"; do
+          if [[ ! -f "$file" ]]; then
+            missing_files+=("$file")
+          fi
+        done
+        
+        if [[ ${#missing_files[@]} -gt 0 ]]; then
+          echo "❌ Missing required files:"
+          printf '%s\n' "${missing_files[@]}"
+          exit 1
+        else
+          echo "✅ All required files present"
+        fi
+
+    - name: 📖 Check README completeness
+      run: |
+        required_sections=(
+          "Installation"
+          "Usage"
+          "API"
+          "Development"
+        )
+        
+        for section in "${required_sections[@]}"; do
+          if ! grep -qi "$section" README.md; then
+            echo "⚠️ README missing section: $section"
+          fi
+        done
+
+  # Label PR automatically
+  label-pr:
+    name: 🏷️ Auto Label
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🏷️ Add labels based on files changed
+      uses: actions/labeler@v5
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        configuration-path: .github/labeler.yml
+
+  # Size check
+  size-check:
+    name: 📊 Size Impact
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📊 Check bundle size impact
+      working-directory: backend
+      run: |
+        echo "Backend size:"
+        du -sh . --exclude=node_modules
+        
+        if [[ -d "node_modules" ]]; then
+          echo "Dependencies size:"
+          du -sh node_modules
+        fi
+
+    - name: 📱 Check Flutter app size
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+    
+    - name: 📱 Build and check APK size
+      working-directory: frontend/maptag_bf
+      run: |
+        flutter pub get
+        flutter build apk --debug
+        apk_size=$(stat -c%s build/app/outputs/flutter-apk/app-debug.apk)
+        echo "Debug APK size: $(($apk_size / 1024 / 1024)) MB"
+        
+        if [[ $apk_size -gt 52428800 ]]; then  # 50MB
+          echo "⚠️ APK size is quite large (>50MB)"
+        else
+          echo "✅ APK size is reasonable"
+        fi
