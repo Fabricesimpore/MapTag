@@ -249,6 +249,10 @@ jobs:
           # Clean up backup files
           rm -f pubspec.yaml.bak
           flutter pub get
+          # Update Android SDK requirements for plugins
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' android/app/build.gradle
+          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/' android/app/build.gradle
+          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/' android/app/build.gradle
         fi
         flutter build apk --release
 
