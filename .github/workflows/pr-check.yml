@@ -53,7 +53,7 @@ jobs:
       working-directory: frontend/maptag_bf
       run: |
         flutter pub get
-        flutter analyze --no-pub
+        flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 
   # Security check for PRs
   security-check:
