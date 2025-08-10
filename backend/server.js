@@ -159,9 +159,24 @@ app.post('/api/addresses', async (req, res) => {
         const lat = parseFloat(latitude);
         const lon = parseFloat(longitude);
 
+        // Check for NaN values (invalid number conversion)
+        if (isNaN(lat) || isNaN(lon)) {
+            return res.status(400).json({
+                error: 'Invalid coordinates: latitude and longitude must be valid numbers'
+            });
+        }
+
+        // Validate coordinate ranges
         if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
             return res.status(400).json({
-                error: 'Invalid coordinates'
+                error: 'Invalid coordinates: latitude must be between -90 and 90, longitude between -180 and 180'
+            });
+        }
+
+        // Validate Burkina Faso boundaries (approximate)
+        if (lat < 9.4 || lat > 15.1 || lon < -5.6 || lon > 2.5) {
+            return res.status(400).json({
+                error: 'Coordinates are outside Burkina Faso boundaries'
             });
         }
 
