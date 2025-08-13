@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'services/database_service.dart';
+import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,6 +13,14 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+  
+  // Initialize local database
+  try {
+    await DatabaseService.instance.database;
+    print('Database initialized successfully');
+  } catch (e) {
+    print('Database initialization error: $e');
+  }
   
   runApp(const MapTagApp());
 }
@@ -61,73 +71,6 @@ class MapTagApp extends StatelessWidget {
         ),
       ),
       home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('MapTag BF'),
-      ),
-      body: const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 64,
-                      color: Colors.green,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'MapTag BF',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Digital addressing system for Burkina Faso',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: null, // Will be implemented later
-              child: const Text('Create Address'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: null, // Will be implemented later
-              child: const Text('Search Address'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: null, // Will be implemented later
-              child: const Text('View Addresses'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -110,20 +110,23 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
+            SizedBox(height: 24),
+            ElevatedButton.icon(
               onPressed: null, // Will be implemented later
-              child: const Text('Create Address'),
+              icon: Icon(Icons.add_location),
+              label: Text('Create Address'),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
+            SizedBox(height: 16),
+            ElevatedButton.icon(
               onPressed: null, // Will be implemented later
-              child: const Text('Search Address'),
+              icon: Icon(Icons.search),
+              label: Text('Search Address'),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
+            SizedBox(height: 16),
+            ElevatedButton.icon(
               onPressed: null, // Will be implemented later
-              child: const Text('View Addresses'),
+              icon: Icon(Icons.list),
+              label: Text('View Addresses'),
             ),
           ],
         ),

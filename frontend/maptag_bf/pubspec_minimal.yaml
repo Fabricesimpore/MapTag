@@ -11,7 +11,11 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # UI components only
+  # Basic HTTP and storage
+  http: ^1.1.0
+  shared_preferences: ^2.2.0
+  
+  # UI components
   cupertino_icons: ^1.0.2
 
 dev_dependencies:
